@@ -1,0 +1,113 @@
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: joomla-mysql
+  labels:
+    app: joomla
+spec:
+  ports:
+  - port: 3306
+  selector:
+    app: joomla
+    tier: mysql
+  clusterIP: None
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: joomla-mysql
+  labels:
+    app: joomla
+spec:
+  selector:
+    matchLabels:
+      app: joomla
+      tier: mysql
+  strategy:
+    type: Recreate
+  template:
+    metadata:
+      labels:
+        app: joomla
+        tier: mysql
+    spec:
+      containers:
+      - image: localhost:32000/mysql-joomla
+        name: mysql
+        env:
+        - name: MYSQL_DATABASE
+          valueFrom:
+            configMapKeyRef:
+              name: app-config
+              key: JOOMLA_DB_NAME
+        - name: MYSQL_ROOT_PASSWORD
+          valueFrom:
+            configMapKeyRef:
+              name: app-config
+              key: JOOMLA_MYSQL_ROOT_PASSWORD
+        ports:
+        - containerPort: 3306
+          name: mysql
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: joomla
+  labels:
+    app: joomla
+spec:
+  ports:
+    - port: 80
+  externalIPs:
+  - 10.0.0.5
+  - 10.0.0.6
+  selector:
+    app: joomla
+    tier: frontend
+  type: LoadBalancer
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: joomla
+  labels:
+    app: joomla
+spec:
+  replicas: 5
+  selector:
+    matchLabels:
+      app: joomla
+      tier: frontend
+  strategy:
+    type: Recreate
+  template:
+    metadata:
+      labels:
+        app: joomla
+        tier: frontend
+    spec:
+      containers:
+      - image: localhost:32000/joomla-app
+        name: joomla
+        env:
+        - name: JOOMLA_DB_HOST
+          value: joomla-mysql
+        - name: JOOMLA_DB_USER
+          valueFrom:
+            configMapKeyRef:
+              name: app-config
+              key: JOOMLA_DB_USER
+        - name: JOOMLA_DB_PASSWORD
+          valueFrom:
+            configMapKeyRef:
+              name: app-config
+              key: JOOMLA_DB_PASSWORD
+        - name: JOOMLA_DB_NAME
+          valueFrom:
+            configMapKeyRef:
+              name: app-config
+              key: JOOMLA_DB_NAME
+        ports:
+        - containerPort: 80
+          name: joomla

@@ -1,0 +1,42 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  creationTimestamp: null
+  labels:
+    app: php-apache
+  name: php-apache
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: php-apache
+  strategy: {}
+  template:
+    metadata:
+      creationTimestamp: null
+      labels:
+        app: php-apache
+    spec:
+      containers:
+      - image: localhost:32000/tudorchat
+        name: php-apache
+        resources: {}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  creationTimestamp: null
+  labels:
+    app: php-apache
+  name: php-apache
+spec:
+  externalIPs:
+  - 10.0.0.5
+  ports:
+  - port: 88
+    protocol: TCP
+    targetPort: 80
+  selector:
+    app: php-apache
+status:
+  loadBalancer: {}
